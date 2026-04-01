@@ -13,14 +13,14 @@ import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, si
 import { getFirestore, doc, setDoc, getDoc, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, updateDoc, getDocs, where } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 // ── FIREBASE CONFIG ──
-// Substitua com suas credenciais do Firebase Console
 const firebaseConfig = {
-  apiKey: "AIzaSyDEMO_SUBSTITUA_COM_SUA_CHAVE",
+  apiKey: "AIzaSyDknFJaeeHzH0irKY69JjuIQBXhAJ8LoLI",
   authDomain: "exec-motorista.firebaseapp.com",
   projectId: "exec-motorista",
-  storageBucket: "exec-motorista.appspot.com",
-  messagingSenderId: "000000000000",
-  appId: "1:000000000000:web:0000000000000000"
+  storageBucket: "exec-motorista.firebasestorage.app",
+  messagingSenderId: "990254742014",
+  appId: "1:990254742014:web:c3a249ec817a414d5e28af",
+  measurementId: "G-0NK50VL8BS"
 };
 
 // ── INIT ──
@@ -439,16 +439,6 @@ onAuthStateChanged(auth, async (user) => {
   #toast.success { border-color:rgba(82,183,136,0.3); }
   #toast.error { border-color:rgba(224,82,82,0.3); }
 
-  /* firebase setup notice */
-  #setup-notice {
-    position:fixed; bottom:22px; left:22px; right:22px; max-width:520px; margin:auto;
-    background:var(--bg2); border:1px solid rgba(200,164,90,0.25);
-    border-radius:var(--radius); padding:16px 20px; z-index:9996;
-    font-size:12px; line-height:1.7; color:var(--text2);
-  }
-  #setup-notice strong { color:var(--gold); }
-  #setup-notice code { background:var(--bg3); padding:1px 6px; border-radius:4px; font-family:monospace; font-size:11px; color:var(--green); }
-
   ::-webkit-scrollbar { width:3px; }
   ::-webkit-scrollbar-thumb { background:var(--bg4); border-radius:2px; }
 </style>
@@ -855,14 +845,6 @@ onAuthStateChanged(auth, async (user) => {
   </div><!-- /app-body -->
 </div><!-- /screen-app -->
 
-<!-- SETUP NOTICE -->
-<div id="setup-notice" style="display:none;">
-  <strong>⚡ Configure o Firebase para dados reais</strong><br>
-  Edite o arquivo HTML e substitua o <code>firebaseConfig</code> com as credenciais do seu projeto Firebase.<br>
-  <strong>Console:</strong> <a href="https://console.firebase.google.com" target="_blank" style="color:var(--gold);">console.firebase.google.com</a> →
-  Criar projeto → Authentication (e-mail/senha) → Firestore → Configurações do projeto → Suas apps → Web.
-</div>
-
 <div id="toast"></div>
 
 <script>
@@ -875,7 +857,7 @@ let _calMonth = new Date().getMonth();
 let _selectedDate = null;
 let _autoReplyOn = false;
 let _currentDriverContact = null;
-let _driverInfo = null; // cached driver user doc
+let _driverInfo = null;
 
 // ── WAIT FOR FIREBASE ──
 function waitForFb(cb) {
@@ -892,10 +874,9 @@ function waitForFb(cb) {
 window.addEventListener('load', () => {
   waitForFb((ready) => {
     document.getElementById('loading').style.display = 'none';
-    if (!ready || (window._fbError && window._fbError.includes('DEMO'))) {
-      document.getElementById('setup-notice').style.display = 'block';
+    if (!ready) {
       showScreen('auth');
-      toast('Configure o Firebase para usar dados reais', 'error');
+      toast('Erro ao conectar com o Firebase', 'error');
       return;
     }
     window.addEventListener('userReady', (e) => {
@@ -907,7 +888,6 @@ window.addEventListener('load', () => {
       }
     });
   });
-  // set default date
   const today = new Date().toISOString().split('T')[0];
   const si = document.getElementById('s-date');
   if (si) si.value = today;
@@ -957,7 +937,6 @@ async function doLogin() {
   try {
     const fb = window._fb;
     await fb.signInWithEmailAndPassword(fb.auth, email, pass);
-    // userReady event will handle navigation
   } catch(e) {
     showAuthError(authMsg(e.code));
     btn.disabled = false; btn.textContent = 'Entrar';
@@ -1000,7 +979,7 @@ function authMsg(code) {
     'auth/invalid-email': 'E-mail inválido.',
     'auth/weak-password': 'Senha muito fraca.',
     'auth/invalid-credential': 'E-mail ou senha incorretos.',
-    'auth/network-request-failed': 'Erro de conexão. Verifique o Firebase config.',
+    'auth/network-request-failed': 'Erro de conexão.',
   };
   return msgs[code] || 'Erro: ' + code;
 }
@@ -1058,14 +1037,13 @@ function nav(viewId, btn) {
     if (sb) sb.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
   }
-  // reload data for views
   if (viewId === 'd-home') loadDriverDashboard();
   if (viewId === 'd-rides') loadDriverRides();
   if (viewId === 'p-rides') loadPassengerRides();
   if (viewId === 'd-financial') loadFinancial();
 }
 
-// ── FIND DRIVER (for passenger) ──
+// ── FIND DRIVER ──
 async function findDriver() {
   try {
     const fb = window._fb;
@@ -1088,12 +1066,6 @@ async function findDriver() {
 }
 
 // ── CHAT ──
-function getChatId() {
-  if (!_user || !_driverInfo) return null;
-  const ids = [_user.uid, _driverInfo.uid].sort();
-  return ids.join('_');
-}
-
 function loadChat() {
   if (_user.role === 'passenger') {
     if (!_driverInfo) { setTimeout(loadChat, 1000); return; }
@@ -1123,7 +1095,6 @@ function openChatThread(otherUid) {
       renderMessage(container, msg);
     });
     container.scrollTop = container.scrollHeight;
-    // clear unread badge
     const badge = _user.role === 'passenger'
       ? document.getElementById('p-unread')
       : document.getElementById('d-unread');
@@ -1141,7 +1112,7 @@ function renderMessage(container, msg) {
   const avClass = isSelf
     ? (_user.role === 'driver' ? 'av-gold' : 'av-blue')
     : (_user.role === 'driver' ? 'av-blue' : 'av-gold');
-  const avInit = isSelf ? initials(_user.name) : initials(isAuto ? 'Auto' : (isSelf ? _user.name : (_driverInfo?.name || '?')));
+  const avInit = isSelf ? initials(_user.name) : initials(isAuto ? 'Auto' : (_driverInfo?.name || '?'));
 
   const bubbleClass = isSelf ? 'bubble bubble-sent' : (isAuto ? 'bubble bubble-auto' : 'bubble bubble-recv');
   const ts = msg.createdAt?.toDate ? msg.createdAt.toDate().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '';
@@ -1178,10 +1149,8 @@ async function sendMessage(role) {
   });
   input.value = '';
 
-  // update preview
   updateChatPreview(chatId, text);
 
-  // auto reply (driver side only, passenger triggers it)
   if (role === 'passenger') {
     checkAutoReply(chatId, otherUid);
   }
@@ -1215,7 +1184,6 @@ async function checkAutoReply(chatId, driverUid) {
 }
 
 async function updateChatPreview(chatId, text) {
-  // Update last message preview in contact list (driver side)
   const previewEl = document.getElementById('prev-' + chatId);
   if (previewEl) previewEl.textContent = text;
 }
@@ -1224,7 +1192,6 @@ async function updateChatPreview(chatId, text) {
 async function loadDriverContacts() {
   if (_user.role !== 'driver') return;
   const fb = window._fb;
-  // get all passengers
   const q = fb.query(fb.collection(fb.db,'users'), fb.where('role','==','passenger'));
   const snap = await fb.getDocs(q);
   const list = document.getElementById('d-contacts-list');
@@ -1256,7 +1223,6 @@ function openDriverChat(passenger, chatId, itemEl) {
   document.querySelectorAll('#d-contacts-list .chat-item').forEach(i => i.classList.remove('active'));
   itemEl.classList.add('active');
 
-  const fb = window._fb;
   const main = document.getElementById('d-chat-main');
   main.innerHTML = `
     <div class="auto-toggle-bar">
@@ -1379,13 +1345,12 @@ async function loadDriverDashboard() {
   const fb = window._fb;
   const q = fb.query(fb.collection(fb.db,'rides'), fb.where('driverId','==',_user.uid));
   const snap = await fb.getDocs(q);
-  let pending = [], confirmed = [], total = 0, pendingRev = 0;
+  let pending = [], confirmed = [], pendingRev = 0;
 
   snap.forEach(d => {
     const r = { id: d.id, ...d.data() };
     if (r.status === 'pending') pending.push(r);
     if (r.status === 'confirmed') { confirmed.push(r); pendingRev += r.priceFixed || 0; }
-    if (r.status === 'completed') total += r.priceFixed || 0;
   });
 
   document.getElementById('d-stat-rides').textContent = snap.size;
@@ -1393,7 +1358,6 @@ async function loadDriverDashboard() {
   document.getElementById('d-stat-pending').textContent = pending.length;
   document.getElementById('d-sub').textContent = new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
 
-  // pending list
   const pList = document.getElementById('d-pending-list');
   if (pending.length === 0) {
     pList.innerHTML = '<div style="color:var(--text3);font-size:13px;">Nenhuma corrida pendente ✓</div>';
@@ -1417,7 +1381,6 @@ async function loadDriverDashboard() {
     });
   }
 
-  // confirmed list
   const cList = document.getElementById('d-confirmed-list');
   if (confirmed.length === 0) {
     cList.innerHTML = '<div style="color:var(--text3);font-size:13px;">Nenhuma confirmada ainda</div>';
@@ -1442,7 +1405,7 @@ async function loadDriverDashboard() {
 async function confirmRide(rideId) {
   const fb = window._fb;
   await fb.updateDoc(fb.doc(fb.db,'rides',rideId), { status: 'confirmed' });
-  toast('✓ Corrida confirmada! Passageiro notificado.', 'success');
+  toast('✓ Corrida confirmada!', 'success');
   loadDriverDashboard();
 }
 async function cancelRide(rideId) {
@@ -1487,12 +1450,12 @@ async function loadFinancial() {
   const fb = window._fb;
   const q = fb.query(fb.collection(fb.db,'rides'), fb.where('driverId','==',_user.uid));
   const snap = await fb.getDocs(q);
-  let total = 0, paid = 0, pending = 0, pendingCount = 0;
+  let total = 0, paid = 0, pending = 0;
   const rows = [];
   snap.forEach(d => {
     const r = { id: d.id, ...d.data() };
     if (r.status === 'completed') { total += r.priceFixed||0; paid++; }
-    if (r.status === 'confirmed') { pending += r.priceFixed||0; pendingCount++; }
+    if (r.status === 'confirmed') { pending += r.priceFixed||0; }
     rows.push(r);
   });
   document.getElementById('f-total').textContent = 'R$ ' + total.toLocaleString('pt-BR');
@@ -1603,10 +1566,10 @@ function buildTimeSlots() {
   const container = document.getElementById('time-slots');
   if (!container) return;
   const hours = ['07h00','08h30','10h00','12h00','14h00','16h00','18h00','20h00'];
-  const occ = [0, 2]; // simulate occupied
+  const occ = [0, 2];
   container.innerHTML = hours.map((h,i) => {
     const isOcc = occ.includes(i);
-    return `<div class="ts${isOcc?' occ':''}" onclick="${isOcc?'':'selectTs(this)'}" >
+    return `<div class="ts${isOcc?' occ':''}" onclick="${isOcc?'':'selectTs(this)'}">
       <div class="ts-hour">${h}</div>
       <div class="ts-bar${isOcc?' fill':''}"></div>
       <div class="ts-lbl">${isOcc?'Ocupado':'Disponível'}</div>
